@@ -32,6 +32,8 @@ import static com.nostra13.universalimageloader.core.ImageLoader.LOG_WAITING_FOR
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,8 +59,9 @@ import com.nostra13.universalimageloader.utils.IoUtils;
 import com.nostra13.universalimageloader.utils.L;
 
 /**
- * Presents load'n'display image task. Used to load image from Internet or file system, decode it to {@link Bitmap}, and
- * display it in {@link ImageView} using {@link DisplayBitmapTask}.
+ * Presents load'n'display image task. Used to load image from Internet or file
+ * system, decode it to {@link Bitmap}, and display it in {@link ImageView}
+ * using {@link DisplayBitmapTask}.
  * 
  * @author Sergey Tarasevich (nostra13[at]gmail[dot]com)
  * @since 1.3.1
@@ -86,7 +89,8 @@ final class LoadAndDisplayImageTask implements Runnable {
 	final DisplayImageOptions options;
 	final ImageLoadingListener listener;
 
-	public LoadAndDisplayImageTask(ImageLoaderEngine engine, ImageLoadingInfo imageLoadingInfo, Handler handler) {
+	public LoadAndDisplayImageTask(ImageLoaderEngine engine,
+			ImageLoadingInfo imageLoadingInfo, Handler handler) {
 		this.engine = engine;
 		this.imageLoadingInfo = imageLoadingInfo;
 		this.handler = handler;
@@ -118,10 +122,12 @@ final class LoadAndDisplayImageTask implements Runnable {
 				log(LOG_RESUME_AFTER_PAUSE, memoryCacheKey);
 			}
 		}
-		if (checkTaskIsNotActual()) return;
+		if (checkTaskIsNotActual())
+			return;
 
 		if (options.shouldDelayBeforeLoading()) {
-			log(LOG_DELAY_BEFORE_LOADING, options.getDelayBeforeLoading(), memoryCacheKey);
+			log(LOG_DELAY_BEFORE_LOADING, options.getDelayBeforeLoading(),
+					memoryCacheKey);
 			try {
 				Thread.sleep(options.getDelayBeforeLoading());
 			} catch (InterruptedException e) {
@@ -129,7 +135,8 @@ final class LoadAndDisplayImageTask implements Runnable {
 				return;
 			}
 
-			if (checkTaskIsNotActual()) return;
+			if (checkTaskIsNotActual())
+				return;
 		}
 
 		ReentrantLock loadFromUriLock = imageLoadingInfo.loadFromUriLock;
@@ -141,14 +148,17 @@ final class LoadAndDisplayImageTask implements Runnable {
 		loadFromUriLock.lock();
 		Bitmap bmp;
 		try {
-			if (checkTaskIsNotActual()) return;
+			if (checkTaskIsNotActual())
+				return;
 
 			bmp = configuration.memoryCache.get(memoryCacheKey);
 			if (bmp == null) {
 				bmp = tryLoadBitmap();
-				if (bmp == null) return;
+				if (bmp == null)
+					return;
 
-				if (checkTaskIsNotActual() || checkTaskIsInterrupted()) return;
+				if (checkTaskIsNotActual() || checkTaskIsInterrupted())
+					return;
 
 				if (options.shouldPreProcess()) {
 					log(LOG_PREPROCESS_IMAGE, memoryCacheKey);
@@ -159,7 +169,8 @@ final class LoadAndDisplayImageTask implements Runnable {
 					configuration.memoryCache.put(memoryCacheKey, bmp);
 				}
 			} else {
-				log(LOG_GET_IMAGE_FROM_MEMORY_CACHE_AFTER_WAITING, memoryCacheKey);
+				log(LOG_GET_IMAGE_FROM_MEMORY_CACHE_AFTER_WAITING,
+						memoryCacheKey);
 			}
 
 			if (options.shouldPostProcess()) {
@@ -170,21 +181,26 @@ final class LoadAndDisplayImageTask implements Runnable {
 			loadFromUriLock.unlock();
 		}
 
-		if (checkTaskIsNotActual() || checkTaskIsInterrupted()) return;
+		if (checkTaskIsNotActual() || checkTaskIsInterrupted())
+			return;
 
-		DisplayBitmapTask displayBitmapTask = new DisplayBitmapTask(bmp, imageLoadingInfo, engine);
+		DisplayBitmapTask displayBitmapTask = new DisplayBitmapTask(bmp,
+				imageLoadingInfo, engine);
 		displayBitmapTask.setLoggingEnabled(loggingEnabled);
 		handler.post(displayBitmapTask);
 	}
 
 	/**
-	 * Check whether the image URI of this task matches to image URI which is actual for current ImageView at this
-	 * moment and fire {@link ImageLoadingListener#onLoadingCancelled()} event if it doesn't.
+	 * Check whether the image URI of this task matches to image URI which is
+	 * actual for current ImageView at this moment and fire
+	 * {@link ImageLoadingListener#onLoadingCancelled()} event if it doesn't.
 	 */
 	private boolean checkTaskIsNotActual() {
 		String currentCacheKey = engine.getLoadingUriForView(imageView);
-		// Check whether memory cache key (image URI) for current ImageView is actual. 
-		// If ImageView is reused for another task then current task should be cancelled.
+		// Check whether memory cache key (image URI) for current ImageView is
+		// actual.
+		// If ImageView is reused for another task then current task should be
+		// cancelled.
 		boolean imageViewWasReused = !memoryCacheKey.equals(currentCacheKey);
 		if (imageViewWasReused) {
 			handler.post(new Runnable() {
@@ -195,14 +211,16 @@ final class LoadAndDisplayImageTask implements Runnable {
 			});
 		}
 
-		if (imageViewWasReused) log(LOG_TASK_CANCELLED, memoryCacheKey);
+		if (imageViewWasReused)
+			log(LOG_TASK_CANCELLED, memoryCacheKey);
 		return imageViewWasReused;
 	}
 
 	/** Check whether the current task was interrupted */
 	private boolean checkTaskIsInterrupted() {
 		boolean interrupted = Thread.interrupted();
-		if (interrupted) log(LOG_TASK_INTERRUPTED, memoryCacheKey);
+		if (interrupted)
+			log(LOG_TASK_INTERRUPTED, memoryCacheKey);
 		return interrupted;
 	}
 
@@ -267,35 +285,41 @@ final class LoadAndDisplayImageTask implements Runnable {
 		if (configuration.handleOutOfMemory) {
 			bmp = decodeWithOOMHandling(imageUri);
 		} else {
-			ImageDecoder decoder = new ImageDecoder(imageUri, getDownloader(), options);
+			ImageDecoder decoder = new ImageDecoder(imageUri, getDownloader(),
+					options);
 			decoder.setLoggingEnabled(loggingEnabled);
-			ViewScaleType viewScaleType = ViewScaleType.fromImageView(imageView);
-			bmp = decoder.decode(targetSize, options.getImageScaleType(), viewScaleType);
+			ViewScaleType viewScaleType = ViewScaleType
+					.fromImageView(imageView);
+			bmp = decoder.decode(targetSize, options.getImageScaleType(),
+					viewScaleType);
 		}
 		return bmp;
 	}
 
 	private Bitmap decodeWithOOMHandling(URI imageUri) throws IOException {
 		Bitmap result = null;
-		ImageDecoder decoder = new ImageDecoder(imageUri, getDownloader(), options);
+		ImageDecoder decoder = new ImageDecoder(imageUri, getDownloader(),
+				options);
 		decoder.setLoggingEnabled(loggingEnabled);
 		for (int attempt = 1; attempt <= ATTEMPT_COUNT_TO_DECODE_BITMAP; attempt++) {
 			try {
-				ViewScaleType viewScaleType = ViewScaleType.fromImageView(imageView);
-				result = decoder.decode(targetSize, options.getImageScaleType(), viewScaleType);
+				ViewScaleType viewScaleType = ViewScaleType
+						.fromImageView(imageView);
+				result = decoder.decode(targetSize,
+						options.getImageScaleType(), viewScaleType);
 			} catch (OutOfMemoryError e) {
 				L.e(e);
 
 				switch (attempt) {
-					case 1:
-						System.gc();
-						break;
-					case 2:
-						configuration.memoryCache.clear();
-						System.gc();
-						break;
-					case 3:
-						throw e;
+				case 1:
+					System.gc();
+					break;
+				case 2:
+					configuration.memoryCache.clear();
+					System.gc();
+					break;
+				case 3:
+					throw e;
 				}
 				// Wait some time while GC is working
 				SystemClock.sleep(attempt * 1000);
@@ -306,25 +330,62 @@ final class LoadAndDisplayImageTask implements Runnable {
 		return result;
 	}
 
-	private void saveImageOnDisc(File targetFile) throws IOException, URISyntaxException {
+	public boolean isGif(File infile) {
+		FileInputStream is;
+		try {
+			is = new FileInputStream(infile);
+
+			if (is != null) {
+				String id = "";
+				for (int i = 0; i < 6; i++) {
+					try {
+						id += (char) is.read();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				if (id.toUpperCase().startsWith("GIF")) {
+					return true;
+				}
+			}
+			try {
+				is.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		}
+		return false;
+	}
+
+	private void saveImageOnDisc(File targetFile) throws IOException,
+			URISyntaxException {
 		File cacheDir = targetFile.getParentFile();
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
 		}
+		
+		boolean isGif = isGif(targetFile);
 
 		int width = configuration.maxImageWidthForDiscCache;
 		int height = configuration.maxImageHeightForDiscCache;
-		if (width > 0 || height > 0) {
+		if (!isGif && (width > 0 || height > 0)) {
 			// Download, decode, compress and save image
 			ImageSize targetImageSize = new ImageSize(width, height);
-			ImageDecoder decoder = new ImageDecoder(new URI(uri), getDownloader(), options);
+			ImageDecoder decoder = new ImageDecoder(new URI(uri),
+					getDownloader(), options);
 			decoder.setLoggingEnabled(loggingEnabled);
-			Bitmap bmp = decoder.decode(targetImageSize, ImageScaleType.IN_SAMPLE_INT, ViewScaleType.FIT_INSIDE);
+			Bitmap bmp = decoder.decode(targetImageSize,
+					ImageScaleType.IN_SAMPLE_INT, ViewScaleType.FIT_INSIDE);
 			if (bmp != null) {
-				OutputStream os = new BufferedOutputStream(new FileOutputStream(targetFile), BUFFER_SIZE);
+				OutputStream os = new BufferedOutputStream(
+						new FileOutputStream(targetFile), BUFFER_SIZE);
 				boolean compressedSuccessfully = false;
 				try {
-					compressedSuccessfully = bmp.compress(configuration.imageCompressFormatForDiscCache, configuration.imageQualityForDiscCache, os);
+					compressedSuccessfully = bmp.compress(
+							configuration.imageCompressFormatForDiscCache,
+							configuration.imageQualityForDiscCache, os);
 				} finally {
 					IoUtils.closeSilently(os);
 				}
@@ -337,9 +398,11 @@ final class LoadAndDisplayImageTask implements Runnable {
 
 		// If previous compression wasn't needed or failed
 		// Download and save original image
-		InputStream is = getDownloader().getStream(new URI(uri), options.getExtraForDownloader());
+		InputStream is = getDownloader().getStream(new URI(uri),
+				options.getExtraForDownloader());
 		try {
-			OutputStream os = new BufferedOutputStream(new FileOutputStream(targetFile), BUFFER_SIZE);
+			OutputStream os = new BufferedOutputStream(new FileOutputStream(
+					targetFile), BUFFER_SIZE);
 			try {
 				IoUtils.copyStream(is, os);
 			} finally {
@@ -373,6 +436,7 @@ final class LoadAndDisplayImageTask implements Runnable {
 	}
 
 	private void log(String message, Object... args) {
-		if (loggingEnabled) L.i(message, args);
+		if (loggingEnabled)
+			L.i(message, args);
 	}
 }
