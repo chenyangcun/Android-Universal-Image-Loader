@@ -365,15 +365,30 @@ final class LoadAndDisplayImageTask implements Runnable {
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
 		}
-		
-		boolean isGif = isGif(targetFile);
 
+		// If previous compression wasn't needed or failed
+		// Download and save original image
+		InputStream is = getDownloader().getStream(new URI(uri),
+				options.getExtraForDownloader());
+		try {
+			OutputStream os = new BufferedOutputStream(new FileOutputStream(
+					targetFile), BUFFER_SIZE);
+			try {
+				IoUtils.copyStream(is, os);
+			} finally {
+				IoUtils.closeSilently(os);
+			}
+		} finally {
+			IoUtils.closeSilently(is);
+		}
+
+		boolean isGif = isGif(targetFile);
 		int width = configuration.maxImageWidthForDiscCache;
 		int height = configuration.maxImageHeightForDiscCache;
 		if (!isGif && (width > 0 || height > 0)) {
 			// Download, decode, compress and save image
 			ImageSize targetImageSize = new ImageSize(width, height);
-			ImageDecoder decoder = new ImageDecoder(new URI(uri),
+			ImageDecoder decoder = new ImageDecoder(targetFile, new URI(uri),
 					getDownloader(), options);
 			decoder.setLoggingEnabled(loggingEnabled);
 			Bitmap bmp = decoder.decode(targetImageSize,
@@ -391,25 +406,10 @@ final class LoadAndDisplayImageTask implements Runnable {
 				}
 				if (compressedSuccessfully) {
 					bmp.recycle();
+					is.close();
 					return;
 				}
 			}
-		}
-
-		// If previous compression wasn't needed or failed
-		// Download and save original image
-		InputStream is = getDownloader().getStream(new URI(uri),
-				options.getExtraForDownloader());
-		try {
-			OutputStream os = new BufferedOutputStream(new FileOutputStream(
-					targetFile), BUFFER_SIZE);
-			try {
-				IoUtils.copyStream(is, os);
-			} finally {
-				IoUtils.closeSilently(os);
-			}
-		} finally {
-			IoUtils.closeSilently(is);
 		}
 	}
 
